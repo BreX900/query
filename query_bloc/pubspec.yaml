@@ -1,0 +1,28 @@
+name: query_bloc
+description: A predictable state management library that helps implement a fetch data from database or another storage
+version: 0.1.0
+repository: https://github.com/BreX900/flutter_value_bloc/tree/master/value_bloc
+issue_tracker: https://github.com/BreX900/flutter_value_bloc/issues
+homepage: https://github.com/BreX900/flutter_value_bloc/
+
+# dart pub publish --dry-run
+
+environment:
+  sdk: '>=2.12.0 <3.0.0'
+
+dependencies:
+  bloc: ^8.0.3
+  rxdart: ^0.27.3
+
+  mek_data_class: ^0.1.0
+
+dev_dependencies:
+  # dart run build_runner build --delete-conflicting-outputs
+  # dart run build_runner watch --delete-conflicting-outputs
+  build_runner: ^2.1.10
+  mek_data_class_generator: ^0.1.1
+
+  test: ^1.21.0
+  mocktail: ^0.3.0
+
+  mek_lints: ^0.2.0
