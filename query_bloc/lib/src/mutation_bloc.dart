@@ -15,12 +15,13 @@ abstract class MutationState<TData> with _$MutationState<TData> {
   bool get isFailed => this is FailedMutation<TData>;
   bool get isSuccess => this is SuccessMutation<TData>;
 
-  MutationState<TData> toLoading() => LoadingMutation();
+  MutationState<TData> toIdle() => const IdleMutation();
 
-  MutationState<TData> toError(Object error, StackTrace stackTrace) =>
-      FailedMutation(error, stackTrace);
+  MutationState<TData> toLoading() => const LoadingMutation();
 
-  MutationState<TData> toSuccess(TData data) => SuccessMutation(data);
+  MutationState<TData> toError(Object error) => FailedMutation(error: error);
+
+  MutationState<TData> toSuccess(TData data) => SuccessMutation(data: data);
 
   R map<R>({
     required R Function(IdleMutation<TData> state) idle,
@@ -62,7 +63,7 @@ class IdleMutation<TData> extends MutationState<TData> with _$IdleMutation<TData
 
 @DataClass()
 class LoadingMutation<TData> extends MutationState<TData> with _$LoadingMutation<TData> {
-  LoadingMutation() : super._();
+  const LoadingMutation() : super._();
 
   @override
   R map<R>({
@@ -78,9 +79,8 @@ class LoadingMutation<TData> extends MutationState<TData> with _$LoadingMutation
 @DataClass()
 class FailedMutation<TData> extends MutationState<TData> with _$FailedMutation<TData> {
   final Object error;
-  final StackTrace stackTrace;
 
-  FailedMutation(this.error, this.stackTrace) : super._();
+  const FailedMutation({required this.error}) : super._();
 
   @override
   R map<R>({
@@ -97,7 +97,7 @@ class FailedMutation<TData> extends MutationState<TData> with _$FailedMutation<T
 class SuccessMutation<TData> extends MutationState<TData> with _$SuccessMutation<TData> {
   final TData data;
 
-  SuccessMutation(this.data) : super._();
+  const SuccessMutation({required this.data}) : super._();
 
   @override
   R map<R>({
@@ -110,50 +110,115 @@ class SuccessMutation<TData> extends MutationState<TData> with _$SuccessMutation
   }
 }
 
-abstract class MutationBloc<TData, TSuccess> extends Cubit<MutationState<TSuccess>> {
-  MutationBloc() : super(IdleMutation<TSuccess>());
+typedef Mutator<TParam, TData> = FutureOr<TData> Function(TParam param);
 
-  factory MutationBloc.inline(
-    Future<TSuccess> Function(TData arg) mutator,
-  ) = _InlineMutationBloc<TData, TSuccess>;
+typedef FailedListener<TParam> = Function(TParam param, Object error);
+typedef SuccessListener<TParam, TData> = Function(TParam param, TData data);
+typedef SettledListener<TParam, TData> = Function(TParam param, TData? data, Object? error);
 
-  Future<void> maybeMutate(TData data) async {
+abstract class MutationBloc<TParam, TData> extends Cubit<MutationState<TData>> {
+  MutationBloc._() : super(IdleMutation<TData>());
+
+  factory MutationBloc(
+    Mutator<TParam, TData> mutator, {
+    FailedListener<TParam>? onFailed,
+    SuccessListener<TParam, TData>? onSuccess,
+    SettledListener<TParam, TData>? onSettled,
+  }) = _InlineMutationBloc<TParam, TData>;
+
+  Future<void> maybeMutate(TParam param);
+
+  Future<TData> mutate(TParam param);
+
+  void reset();
+}
+
+abstract class MutationBlocBase<TParam, TData> extends MutationBloc<TParam, TData> {
+  MutationBlocBase() : super._();
+
+  @protected
+  FutureOr<TData> onMutating(TParam param);
+
+  @protected
+  FutureOr<void> onFailed(TParam param, Object error) {}
+
+  @protected
+  FutureOr<void> onSuccess(TParam param, TData data) {}
+
+  @protected
+  FutureOr<void> onSettled(TParam param, TData? data, Object? error) {}
+
+  @override
+  Future<void> maybeMutate(TParam param) async {
     try {
-      await mutate(data);
+      await mutate(param);
     } catch (_) {}
   }
 
-  Future<TSuccess> mutate(TData data) async {
-    if (state.isLoading) throw AlreadyMutatingError();
+  @override
+  Future<TData> mutate(TParam param) async {
+    if (state.isLoading) throw ImmutableStateError();
 
     emit(state.toLoading());
 
     try {
-      final result = await onMutating(data);
-      emit(state.toSuccess(result));
-      return result;
+      final data = await onMutating(param);
+
+      await onSuccess(param, data);
+      await onSettled(param, data, null);
+      emit(state.toSuccess(data));
+
+      return data;
     } catch (error, stackTrace) {
       onError(error, stackTrace);
 
-      emit(state.toError(error, stackTrace));
+      await onFailed(param, error);
+      await onSettled(param, null, error);
+      emit(state.toError(error));
+
       rethrow;
     }
   }
 
-  @protected
-  FutureOr<TSuccess> onMutating(TData data);
+  @override
+  void reset() {
+    if (state.isLoading) throw ImmutableStateError();
+
+    emit(state.toIdle());
+  }
 }
 
-class _InlineMutationBloc<TArgs, TData> extends MutationBloc<TArgs, TData> {
-  final Future<TData> Function(TArgs args) mutator;
+class _InlineMutationBloc<TParam, TData> extends MutationBlocBase<TParam, TData> {
+  final Mutator<TParam, TData> mutator;
+  final FailedListener<TParam>? _onFailed;
+  final SuccessListener<TParam, TData>? _onSuccess;
+  final SettledListener<TParam, TData>? _onSettled;
 
-  _InlineMutationBloc(this.mutator) : super();
+  _InlineMutationBloc(
+    this.mutator, {
+    FailedListener<TParam>? onFailed,
+    SuccessListener<TParam, TData>? onSuccess,
+    SettledListener<TParam, TData>? onSettled,
+  })  : _onFailed = onFailed,
+        _onSuccess = onSuccess,
+        _onSettled = onSettled,
+        super();
 
   @override
-  Future<TData> onMutating(TArgs args) => mutator(args);
+  FutureOr<TData> onMutating(TParam arg) => mutator(arg);
+
+  @override
+  FutureOr<void> onFailed(TParam param, Object error) => _onFailed?.call(param, error);
+
+  @override
+  FutureOr<void> onSuccess(TParam param, TData data) => _onSuccess?.call(param, data);
+
+  @override
+  FutureOr<void> onSettled(TParam param, TData? data, Object? error) =>
+      _onSettled?.call(param, data, error);
 }
 
-class AlreadyMutatingError extends Error {
+class ImmutableStateError extends Error {
   @override
   String toString() => 'You cannot start a new mutation if one is already in progress';
 }

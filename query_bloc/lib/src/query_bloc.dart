@@ -32,9 +32,9 @@ abstract class QueryState<TData> with _$QueryState<TData> {
     required R Function(TData data) data,
   }) {
     if (hasData) {
-      return data(this.requiredData);
+      return data(requiredData);
     } else if (hasError) {
-      return error(this.requiredError);
+      return error(requiredError);
     } else {
       return loading();
     }
@@ -150,8 +150,9 @@ class LoadingQuery<TData> extends QueryState<TData> with _$LoadingQuery<TData> {
 class FailedQuery<TData> extends QueryState<TData> with _$FailedQuery<TData> {
   @override
   bool get hasError => true;
-
+  @override
   final Object error;
+  @override
   final StackTrace stackTrace;
 
   @override
@@ -309,7 +310,7 @@ class _InlineDemandBloc<TData> extends QueryBloc<TData> {
 //   }
 // }
 //
-// abstract class PagedDemandBloc<TArg, TData> extends DemandBloc<QueryPages<TArg, TData>> {
+// abstract class PagedDemandBloc<TArg, TData> extends QueryBloc<QueryPages<TArg, TData>> {
 //   TArg _arg;
 //
 //   PagedDemandBloc({
@@ -341,13 +342,11 @@ class _InlineDemandBloc<TData> extends QueryBloc<TData> {
 //       });
 //       if (result != null) return result;
 //     }
-//     final page = await onFetchingPage(arg);
-//     emit(state.toFetched(state.requiredData.copyWith(
-//       pages: {
-//         ...state.requiredData.pages,
-//         arg: page,
-//       },
-//     )));
+//
+//     emit(state.toFetching());
+//     _key = Object();
+//
+//     return _fetchPage(arg);
 //   }
 //
 //   @override
@@ -356,4 +355,21 @@ class _InlineDemandBloc<TData> extends QueryBloc<TData> {
 //   }
 //
 //   Future<TData> onFetchingPage(TArg arg);
+//
+//   Future<TData> _fetchPage(TArg arg) async {
+//     try {
+//       final page = await onFetchingPage(arg);
+//       emit(state.toFetched(state.requiredData.copyWith(
+//         pages: {
+//           ...state.requiredData.pages,
+//           arg: page,
+//         },
+//       )));
+//       return page;
+//     } catch (error, stackTrace) {
+//       addError(error, stackTrace);
+//       emit(state.toFetchFailed(error, stackTrace));
+//       rethrow;
+//     }
+//   }
 // }

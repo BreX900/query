@@ -72,7 +72,7 @@ void main() {
       test('throw an error if you start mutation while you are already mutating', () async {
         bloc.emit(state = state.toLoading());
 
-        await expectLater(() => bloc.mutate(tData), throwsA(isA<AlreadyMutatingError>()));
+        await expectLater(() => bloc.mutate(tData), throwsA(isA<ImmutableStateError>()));
       });
     });
   });

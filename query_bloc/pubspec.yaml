@@ -16,6 +16,8 @@ dependencies:
 
   mek_data_class: ^0.1.0
 
+  riverbloc: ^2.0.0-dev.2
+
 dev_dependencies:
   # dart run build_runner build --delete-conflicting-outputs
   # dart run build_runner watch --delete-conflicting-outputs
