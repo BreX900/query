@@ -113,3 +113,63 @@ mixin _$SuccessQuery<TData> {
       (ClassToString('SuccessQuery', [TData])..add('data', _self.data))
           .toString();
 }
+
+mixin _$PagesState<TCursor, TData> {
+  PagesState<TCursor, TData> get _self => this as PagesState<TCursor, TData>;
+
+  Iterable<Object?> get _props sync* {
+    yield _self.cursor;
+    yield _self.totalPages;
+    yield _self.pages;
+    yield _self.flatPages;
+  }
+
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _$PagesState<TCursor, TData> &&
+          runtimeType == other.runtimeType &&
+          DataClass.$equals(_props, other._props);
+
+  int get hashCode => Object.hashAll(_props);
+
+  String toString() => (ClassToString('PagesState', [TCursor, TData])
+        ..add('cursor', _self.cursor)
+        ..add('totalPages', _self.totalPages)
+        ..add('pages', _shortMap(_self.pages))
+        ..add('flatPages', _self.flatPages))
+      .toString();
+
+  PagesState<TCursor, TData> change(
+          void Function(_PagesStateChanges<TCursor, TData> c) updates) =>
+      (_PagesStateChanges<TCursor, TData>._(_self)..update(updates)).build();
+
+  _PagesStateChanges<TCursor, TData> toChanges() => _PagesStateChanges._(_self);
+}
+
+class _PagesStateChanges<TCursor, TData> {
+  late TCursor cursor;
+  late int? totalPages;
+  late Map<TCursor, TData> pages;
+  late List<TData> flatPages;
+
+  _PagesStateChanges._(PagesState<TCursor, TData> dataClass) {
+    replace(dataClass);
+  }
+
+  void update(void Function(_PagesStateChanges<TCursor, TData> c) updates) =>
+      updates(this);
+
+  void replace(covariant PagesState<TCursor, TData> dataClass) {
+    cursor = dataClass.cursor;
+    totalPages = dataClass.totalPages;
+    pages = dataClass.pages;
+    flatPages = dataClass.flatPages;
+  }
+
+  PagesState<TCursor, TData> build() => PagesState(
+        cursor: cursor,
+        totalPages: totalPages,
+        pages: pages,
+        flatPages: flatPages,
+      );
+}

@@ -60,8 +60,8 @@ mixin _$FailedMutation<TData> {
   FailedMutation<TData> get _self => this as FailedMutation<TData>;
 
   Iterable<Object?> get _props sync* {
+    yield _self.isMutating;
     yield _self.error;
-    yield _self.stackTrace;
   }
 
   bool operator ==(Object other) =>
@@ -73,8 +73,8 @@ mixin _$FailedMutation<TData> {
   int get hashCode => Object.hashAll(_props);
 
   String toString() => (ClassToString('FailedMutation', [TData])
-        ..add('error', _self.error)
-        ..add('stackTrace', _self.stackTrace))
+        ..add('isMutating', _self.isMutating)
+        ..add('error', _self.error))
       .toString();
 }
 
@@ -82,6 +82,7 @@ mixin _$SuccessMutation<TData> {
   SuccessMutation<TData> get _self => this as SuccessMutation<TData>;
 
   Iterable<Object?> get _props sync* {
+    yield _self.isMutating;
     yield _self.data;
   }
 
@@ -93,7 +94,8 @@ mixin _$SuccessMutation<TData> {
 
   int get hashCode => Object.hashAll(_props);
 
-  String toString() =>
-      (ClassToString('SuccessMutation', [TData])..add('data', _self.data))
-          .toString();
+  String toString() => (ClassToString('SuccessMutation', [TData])
+        ..add('isMutating', _self.isMutating)
+        ..add('data', _self.data))
+      .toString();
 }

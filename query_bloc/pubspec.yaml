@@ -3,7 +3,7 @@ description: A predictable state management library that helps implement a fetch
 version: 0.1.0
 repository: https://github.com/BreX900/flutter_value_bloc/tree/master/value_bloc
 issue_tracker: https://github.com/BreX900/flutter_value_bloc/issues
-homepage: https://github.com/BreX900/flutter_value_bloc/
+homepage: https://github.com/BreX900/query
 
 # dart pub publish --dry-run
 
@@ -13,6 +13,7 @@ environment:
 dependencies:
   bloc: ^8.0.3
   rxdart: ^0.27.3
+  meta: ^1.7.0
 
   mek_data_class: ^0.1.0
 

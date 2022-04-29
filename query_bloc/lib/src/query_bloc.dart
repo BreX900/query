@@ -84,6 +84,13 @@ abstract class QueryState<TData> with _$QueryState<TData> {
     );
   }
 
+  QueryState<TData> toFetchingWithData(TData data) {
+    return LoadingQuery(
+      hasData: true,
+      data: data,
+    );
+  }
+
   QueryState<TData> toFetchFailed(Object error, StackTrace stackTrace) {
     return FailedQuery(
       error: error,
@@ -290,79 +297,42 @@ class _InlineDemandBloc<TData> extends QueryBloc<TData> {
   Future<TData> onFetching() => fetcher();
 }
 
-// class QueryPages<TArg, TData> {
-//   final int? totalPages;
-//   final Map<TArg, TData> pages;
-//
-//   const QueryPages({
-//     required this.totalPages,
-//     required this.pages,
-//   });
-//
-//   QueryPages<TArg, TData> copyWith({
-//     int? totalPages,
-//     Map<TArg, TData>? pages,
-//   }) {
-//     return QueryPages(
-//       totalPages: totalPages ?? this.totalPages,
-//       pages: pages ?? this.pages,
-//     );
-//   }
-// }
-//
-// abstract class PagedDemandBloc<TArg, TData> extends QueryBloc<QueryPages<TArg, TData>> {
+// abstract class PagedQueryBloc<TArg, TData> extends QueryBloc<QueryPages<TArg, TData>> {
 //   TArg _arg;
 //
-//   PagedDemandBloc({
+//   PagedQueryBloc({
 //     required TArg initialArg,
-//   })  : _arg = initialArg,
+//   })  : _initialArg = initialArg,
+//         _arg = initialArg,
 //         super(
 //           dataInitializer: () => QueryPages(totalPages: null, pages: {}),
 //         );
 //
-//   @override
-//   Future<QueryPages<TArg, TData>> fetch() {
-//     // Delete all keys
-//     return super.fetch();
-//   }
-//
-//   Future<TData> fetchPage(TArg arg) async {
-//     if (state.requiredData.pages.containsKey(arg)) {
-//       return state.requiredData.pages[arg] as TData;
-//     }
-//     if (_arg == arg) {
-//       final result = state.map<Future<TData>?>(idle: (state) {
-//         return null;
-//       }, loading: (state) {
-//         return _result!.future.then((value) => value.pages[arg] as TData);
-//       }, failed: (state) {
-//         return Future.error(state.error, state.stackTrace);
-//       }, success: (state) {
-//         return Future.value(state.data.pages[arg] as TData);
-//       });
-//       if (result != null) return result;
-//     }
-//
+//   Future<TData?> fetchPage(TArg arg) async {
 //     emit(state.toFetching());
 //     _key = Object();
 //
-//     return _fetchPage(arg);
+//     return _fetchPage(arg, merge: true);
 //   }
 //
 //   @override
-//   Future<QueryPages<TArg, TData>> onFetching(TArg arg) async {
-//     fetchPage(arg);
+//   Future<QueryPages<TArg, TData>> onFetching() async {
+//     _arg = _initialArg;
+//     emit(state.toFetching());
+//     await _fetchPage(_initialArg, merge: false);
+//     return state.requiredData;
 //   }
 //
-//   Future<TData> onFetchingPage(TArg arg);
+//   Future<TData?> onFetchingPage(TArg arg);
 //
-//   Future<TData> _fetchPage(TArg arg) async {
+//   Future<TData?> _fetchPage(TArg arg, {required bool merge}) async {
 //     try {
 //       final page = await onFetchingPage(arg);
 //       emit(state.toFetched(state.requiredData.copyWith(
+//         totalPages: page == null ? state.requiredData.pages.length : null,
 //         pages: {
-//           ...state.requiredData.pages,
-//           arg: page,
+//           if (merge) ...state.requiredData.pages,
+//           if (page != null) arg: page,
 //         },
 //       )));
 //       return page;
@@ -371,5 +341,109 @@ class _InlineDemandBloc<TData> extends QueryBloc<TData> {
 //       emit(state.toFetchFailed(error, stackTrace));
 //       rethrow;
 //     }
+//   }
+// }
+
+String _shortMap(dynamic value) => '${(value as Map).length}';
+
+@DataClass(changeable: true)
+class PagesState<TCursor, TData> with _$PagesState<TCursor, TData> {
+  final TCursor cursor;
+  final int? totalPages;
+  @DataField(stringifier: _shortMap)
+  final Map<TCursor, TData> pages;
+  final List<TData> flatPages;
+
+  bool get hasNextPage => totalPages == null;
+
+  const PagesState({
+    required this.cursor,
+    required this.totalPages,
+    required this.pages,
+    required this.flatPages,
+  });
+}
+
+abstract class Cursor<TCursor, TData> {
+  TCursor get initial;
+  TCursor next(PagesState<TCursor, TData> state);
+  TCursor previous(PagesState<TCursor, TData> state);
+}
+
+class IndexedCursor extends Cursor<int, Never> {
+  @override
+  int get initial => 1;
+
+  @override
+  int next(PagesState<int, dynamic> state) => state.cursor + 1;
+
+  @override
+  int previous(PagesState<int, dynamic> state) => state.cursor - 1;
+}
+
+abstract class PagedQueryBloc<TCursor, TData>
+    extends Cubit<QueryState<PagesState<TCursor, TData>>> {
+  var _key = Object();
+  final Cursor<TCursor, TData> _cursor;
+
+  PagedQueryBloc({
+    required Cursor<TCursor, TData> cursor,
+  })  : _cursor = cursor,
+        super(LoadingQuery(
+          hasData: true,
+          data: PagesState(
+            totalPages: null,
+            pages: {},
+            cursor: cursor.initial,
+            flatPages: [],
+          ),
+        )) {
+    _fetchPage(state.requiredData.cursor, merge: true);
+  }
+
+  Future<TData?> fetch() {
+    emit(state.toFetchingWithData(state.requiredData.change((c) => c..cursor = _cursor.initial)));
+    _key = Object();
+
+    return _fetchPage(_cursor.initial, merge: false);
+  }
+
+  Future<TData?> fetchPage(TCursor cursor) async {
+    emit(state.toFetchingWithData(state.requiredData.change((c) => c..cursor = cursor)));
+    _key = Object();
+
+    return _fetchPage(cursor, merge: true);
+  }
+
+  Future<TData?> fetchNextPage() => fetchPage(_cursor.next(state.requiredData));
+
+  Future<TData?> fetchPreviousPage() => fetchPage(_cursor.previous(state.requiredData));
+
+  Future<TData?> onFetchingPage(TCursor index);
+
+  Future<TData?> _fetchPage(TCursor index, {required bool merge}) async {
+    try {
+      final page = await onFetchingPage(index);
+      emit(state.toFetched(state.requiredData.change((b) => b
+        ..totalPages = page == null ? state.requiredData.pages.length : b.totalPages
+        ..pages = {
+          if (merge) ...state.requiredData.pages,
+          if (page != null) index: page,
+        })));
+      return page;
+    } catch (error, stackTrace) {
+      addError(error, stackTrace);
+      emit(state.toFetchFailed(error, stackTrace));
+      rethrow;
+    }
+  }
+}
+
+// class MyQueryBloc extends PagedQueryBloc<int, List<String>> {
+//   MyQueryBloc() : super(cursorMover: IndexedCursor());
+//
+//   @override
+//   Future<List<String>?> onFetchingPage(int index) {
+//     return null;
 //   }
 // }
