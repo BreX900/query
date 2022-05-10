@@ -1,6 +1,6 @@
 name: rivertion
 description: Extends riverpod by adding the ability to manipulate data via asynchronous mutations / actions.
-version: 0.1.0-dev.1
+version: 0.1.0-dev.2
 homepage: https://github.com/BreX900/query/riverpod_mutation
 
 environment:

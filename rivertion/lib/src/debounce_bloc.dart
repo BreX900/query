@@ -20,7 +20,7 @@ abstract class DebounceState<T> with _$DebounceState<T> {
 
   @visibleForTesting
   DebounceState<T> toIdle(T value) {
-    return WaitingDebounce(value: value, debouncedValue: value);
+    return IdleDebounce(value: value, debouncedValue: value);
   }
 
   @visibleForTesting
@@ -30,7 +30,7 @@ abstract class DebounceState<T> with _$DebounceState<T> {
 
   @visibleForTesting
   DebounceState<T> toCompleted(T debouncedValue) {
-    return WaitingDebounce(value: debouncedValue, debouncedValue: debouncedValue);
+    return CompletedDebounce(value: debouncedValue, debouncedValue: debouncedValue);
   }
 }
 

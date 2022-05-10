@@ -22,11 +22,19 @@ abstract class MutationState<TData> with _$MutationState<TData> {
 
   MutationState<TData> toLoading() => LoadingMutation();
 
-  MutationState<TData> toFailed({bool isMutating = false, required Object error}) =>
-      FailedMutation(isMutating: isMutating, error: error);
+  MutationState<TData> toFailed({
+    bool isMutating = false,
+    required Object error,
+  }) {
+    return FailedMutation(isMutating: isMutating, error: error);
+  }
 
-  MutationState<TData> toSuccess({bool isMutating = false, required TData data}) =>
-      SuccessMutation(isMutating: isMutating, data: data);
+  MutationState<TData> toSuccess({
+    bool isMutating = false,
+    required TData data,
+  }) {
+    return SuccessMutation(isMutating: isMutating, data: data);
+  }
 
   R map<R>({
     required R Function(IdleMutation<TData> state) idle,
@@ -169,7 +177,7 @@ abstract class MutationBloc<TParam, TData> extends Cubit<MutationState<TData>> {
 
 abstract class MutationBlocBase<TParam, TData> extends MutationBloc<TParam, TData> {
   var _queueLength = 0;
-  var _key = const Object();
+  var _resetKey = const Object();
 
   MutationBlocBase() : super._();
 
@@ -204,7 +212,7 @@ abstract class MutationBlocBase<TParam, TData> extends MutationBloc<TParam, TDat
 
   @override
   Future<TData> mutate(TParam param) async {
-    final key = _key;
+    final resetKey = _resetKey;
 
     if (_queueLength == 0) {
       emit(state.toLoading());
@@ -215,9 +223,9 @@ abstract class MutationBlocBase<TParam, TData> extends MutationBloc<TParam, TDat
     try {
       final data = await onMutating(param);
 
-      await onSuccess(param, data);
-      await onSettled(param, data, null);
-      if (_key == key) {
+      await _notifySuccess(param, data);
+      await _notifySettled(param, data, null);
+      if (_resetKey == resetKey) {
         emit(state.toSuccess(
           isMutating: _queueLength > 1,
           data: data,
@@ -228,9 +236,9 @@ abstract class MutationBlocBase<TParam, TData> extends MutationBloc<TParam, TDat
     } catch (error, stackTrace) {
       onError(error, stackTrace);
 
-      await onFailed(param, error);
-      await onSettled(param, null, error);
-      if (_key == key) {
+      await _notifyFailed(param, error);
+      await _notifySettled(param, null, error);
+      if (_resetKey == resetKey) {
         emit(state.toFailed(
           isMutating: _queueLength > 1,
           error: error,
@@ -245,8 +253,32 @@ abstract class MutationBlocBase<TParam, TData> extends MutationBloc<TParam, TDat
 
   @override
   void reset() {
-    _key = Object();
+    _resetKey = Object();
     emit(state.toIdle());
+  }
+
+  Future<void> _notifyFailed(TParam param, Object error) async {
+    try {
+      return await onFailed(param, error);
+    } catch (error, stackTrace) {
+      onError(error, stackTrace);
+    }
+  }
+
+  FutureOr<void> _notifySuccess(TParam param, TData data) async {
+    try {
+      return await onSuccess(param, data);
+    } catch (error, stackTrace) {
+      onError(error, stackTrace);
+    }
+  }
+
+  FutureOr<void> _notifySettled(TParam param, TData? data, Object? error) async {
+    try {
+      return await onSettled(param, data, error);
+    } catch (error, stackTrace) {
+      onError(error, stackTrace);
+    }
   }
 }
 

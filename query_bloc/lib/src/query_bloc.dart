@@ -352,7 +352,6 @@ class PagesState<TCursor, TData> with _$PagesState<TCursor, TData> {
   final int? totalPages;
   @DataField(stringifier: _shortMap)
   final Map<TCursor, TData> pages;
-  final List<TData> flatPages;
 
   bool get hasNextPage => totalPages == null;
 
@@ -360,7 +359,6 @@ class PagesState<TCursor, TData> with _$PagesState<TCursor, TData> {
     required this.cursor,
     required this.totalPages,
     required this.pages,
-    required this.flatPages,
   });
 }
 
@@ -395,41 +393,46 @@ abstract class PagedQueryBloc<TCursor, TData>
             totalPages: null,
             pages: {},
             cursor: cursor.initial,
-            flatPages: [],
           ),
         )) {
-    _fetchPage(state.requiredData.cursor, merge: true);
+    _fetchPage(state.requiredData.cursor, key: _key, merge: true);
   }
 
   Future<TData?> fetch() {
     emit(state.toFetchingWithData(state.requiredData.change((c) => c..cursor = _cursor.initial)));
     _key = Object();
 
-    return _fetchPage(_cursor.initial, merge: false);
+    return _fetchPage(_cursor.initial, key: _key, merge: false);
   }
 
   Future<TData?> fetchPage(TCursor cursor) async {
     emit(state.toFetchingWithData(state.requiredData.change((c) => c..cursor = cursor)));
     _key = Object();
 
-    return _fetchPage(cursor, merge: true);
+    return _fetchPage(cursor, key: _key, merge: true);
   }
 
   Future<TData?> fetchNextPage() => fetchPage(_cursor.next(state.requiredData));
 
   Future<TData?> fetchPreviousPage() => fetchPage(_cursor.previous(state.requiredData));
 
-  Future<TData?> onFetchingPage(TCursor index);
+  Future<TData?> onFetchingPage(TCursor cursor);
 
-  Future<TData?> _fetchPage(TCursor index, {required bool merge}) async {
+  Future<TData?> _fetchPage(TCursor cursor, {required Object key, required bool merge}) async {
     try {
-      final page = await onFetchingPage(index);
+      final page = await onFetchingPage(cursor);
+
       emit(state.toFetched(state.requiredData.change((b) => b
-        ..totalPages = page == null ? state.requiredData.pages.length : b.totalPages
+        ..totalPages = page == null
+            ? state.requiredData.pages.length
+            : merge
+                ? b.totalPages
+                : null
         ..pages = {
           if (merge) ...state.requiredData.pages,
-          if (page != null) index: page,
+          if (page != null) cursor: page,
         })));
+
       return page;
     } catch (error, stackTrace) {
       addError(error, stackTrace);
