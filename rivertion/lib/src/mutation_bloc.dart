@@ -57,6 +57,64 @@ abstract class MutationState<TData> with _$MutationState<TData> {
       success: success ?? orElse,
     );
   }
+
+  R? mapOrNull<R>({
+    R Function(IdleMutation<TData> state)? idle,
+    R Function(LoadingMutation<TData> state)? loading,
+    R Function(FailedMutation<TData> state)? failed,
+    R Function(SuccessMutation<TData> state)? success,
+  }) {
+    R? orNull(_) => null;
+    return map(
+      idle: idle ?? orNull,
+      loading: loading ?? orNull,
+      failed: failed ?? orNull,
+      success: success ?? orNull,
+    );
+  }
+
+  R when<R>({
+    required R Function() idle,
+    required R Function() loading,
+    required R Function(Object error) failed,
+    required R Function(TData data) success,
+  }) {
+    return map(
+      idle: (state) => idle(),
+      loading: (state) => loading(),
+      failed: (state) => failed(state.error),
+      success: (state) => success(state.data),
+    );
+  }
+
+  R maybeWhen<R>({
+    R Function()? idle,
+    R Function()? loading,
+    R Function(Object error)? failed,
+    R Function(TData data)? success,
+    required R Function() orElse,
+  }) {
+    return map(
+      idle: (_) => idle == null ? orElse() : idle(),
+      loading: (_) => loading == null ? orElse() : loading(),
+      failed: (state) => failed == null ? orElse() : failed(state.error),
+      success: (state) => success == null ? orElse() : success(state.data),
+    );
+  }
+
+  R? whenOrNull<R>({
+    R Function()? idle,
+    R Function()? loading,
+    R Function(Object error)? failed,
+    R Function(TData data)? success,
+  }) {
+    return map(
+      idle: (_) => idle?.call(),
+      loading: (_) => loading?.call(),
+      failed: (state) => failed?.call(state.error),
+      success: (state) => success?.call(state.data),
+    );
+  }
 }
 
 @DataClass()
@@ -225,7 +283,7 @@ abstract class MutationBlocBase<TParam, TData> extends MutationBloc<TParam, TDat
 
       await _notifySuccess(param, data);
       await _notifySettled(param, data, null);
-      if (_resetKey == resetKey) {
+      if (_resetKey == resetKey && !isClosed) {
         emit(state.toSuccess(
           isMutating: _queueLength > 1,
           data: data,
@@ -238,7 +296,7 @@ abstract class MutationBlocBase<TParam, TData> extends MutationBloc<TParam, TDat
 
       await _notifyFailed(param, error);
       await _notifySettled(param, null, error);
-      if (_resetKey == resetKey) {
+      if (_resetKey == resetKey && !isClosed) {
         emit(state.toFailed(
           isMutating: _queueLength > 1,
           error: error,
