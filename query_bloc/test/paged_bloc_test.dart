@@ -66,13 +66,13 @@ void main() {
 
       final tInitialResult = 'INITIAL_RESULT';
 
-      setUp(() async {
-        when(() => mockFetcher()).thenAnswer((_) async => tInitialResult);
-        bloc = QueryBloc.inline(mockFetcher);
-        await bloc.stream.firstWhere((state) => state.hasData);
-        state = bloc.state;
-      });
-
+      // setUp(() async {
+      //   when(() => mockFetcher()).thenAnswer((_) async => tInitialResult);
+      //   bloc = PagedQueryBloc.inline(mockFetcher);
+      //   await bloc.stream.firstWhere((state) => state.hasData);
+      //   state = bloc.state;
+      // });
+      //
       // test('Success fetch', () async {
       //   when(() => mockFetcher()).thenAnswer((_) async => tResult);
       //

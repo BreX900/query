@@ -379,6 +379,8 @@ class IndexedCursor extends Cursor<int, Never> {
   int previous(PagesState<int, dynamic> state) => state.cursor - 1;
 }
 
+typedef IndexedQueryBloc<TData> = PagedQueryBloc<int, TData>;
+
 abstract class PagedQueryBloc<TCursor, TData>
     extends Cubit<QueryState<PagesState<TCursor, TData>>> {
   var _key = Object();
@@ -435,7 +437,7 @@ abstract class PagedQueryBloc<TCursor, TData>
 
       return page;
     } catch (error, stackTrace) {
-      addError(error, stackTrace);
+      onError(error, stackTrace);
       emit(state.toFetchFailed(error, stackTrace));
       rethrow;
     }

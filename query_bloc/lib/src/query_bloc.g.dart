@@ -121,7 +121,6 @@ mixin _$PagesState<TCursor, TData> {
     yield _self.cursor;
     yield _self.totalPages;
     yield _self.pages;
-    yield _self.flatPages;
   }
 
   bool operator ==(Object other) =>
@@ -135,8 +134,7 @@ mixin _$PagesState<TCursor, TData> {
   String toString() => (ClassToString('PagesState', [TCursor, TData])
         ..add('cursor', _self.cursor)
         ..add('totalPages', _self.totalPages)
-        ..add('pages', _shortMap(_self.pages))
-        ..add('flatPages', _self.flatPages))
+        ..add('pages', _shortMap(_self.pages)))
       .toString();
 
   PagesState<TCursor, TData> change(
@@ -150,7 +148,6 @@ class _PagesStateChanges<TCursor, TData> {
   late TCursor cursor;
   late int? totalPages;
   late Map<TCursor, TData> pages;
-  late List<TData> flatPages;
 
   _PagesStateChanges._(PagesState<TCursor, TData> dataClass) {
     replace(dataClass);
@@ -163,13 +160,11 @@ class _PagesStateChanges<TCursor, TData> {
     cursor = dataClass.cursor;
     totalPages = dataClass.totalPages;
     pages = dataClass.pages;
-    flatPages = dataClass.flatPages;
   }
 
   PagesState<TCursor, TData> build() => PagesState(
         cursor: cursor,
         totalPages: totalPages,
         pages: pages,
-        flatPages: flatPages,
       );
 }
