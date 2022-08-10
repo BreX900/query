@@ -12,7 +12,7 @@ final todos = FutureProvider((ref) async {
 });
 
 final addTodo = MutationProvider<String, void>((ref) {
-  return MutationBloc((todo) async {
+  return MutationBloc((key, todo) async {
     await Future.delayed(const Duration(seconds: 1));
 
     _todos = [..._todos, todo];
@@ -22,8 +22,11 @@ final addTodo = MutationProvider<String, void>((ref) {
 });
 
 final removeTodo = MutationProvider<String, void>((ref) {
-  return MutationBloc((todo) async {
-    await Future.delayed(const Duration(seconds: 1));
+  return MutationBloc((key, todo) async {
+    for (var i = 1; i < 10; i++) {
+      ref.bloc.emitProgress(key, i / 10);
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
 
     _todos = _todos.where((e) => e != todo).toList();
   }, onSuccess: (_, __) async {
@@ -64,6 +67,12 @@ class MyHomePage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
+        bottom: removeTodoState.isMutating
+            ? PreferredSize(
+                preferredSize: Size.fromHeight(8.0),
+                child: LinearProgressIndicator(value: removeTodoState.progress),
+              )
+            : null,
       ),
       body: Center(
         child: Column(

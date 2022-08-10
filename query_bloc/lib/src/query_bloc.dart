@@ -14,6 +14,7 @@ abstract class QueryState<TData> with _$QueryState<TData> {
   StackTrace? get stackTrace => null;
 
   bool get hasData => false;
+  bool get hasMoreData => true;
   TData? get data => null;
   TData get requiredData => hasData ? data as TData : throw 'Missing data';
 
@@ -213,11 +214,11 @@ typedef QueryFetcher<TData> = Future<TData> Function();
 
 typedef QueryInitializer<TData> = TData Function();
 
-abstract class QueryBloc<TData> extends Cubit<QueryState<TData>> {
+abstract class QueryBlocBase<TData> extends Cubit<QueryState<TData>> {
   var _key = const Object();
   Completer<TData>? _result;
 
-  QueryBloc({
+  QueryBlocBase({
     bool shouldFetch = true,
     QueryInitializer<TData>? dataInitializer,
   }) : super(shouldFetch
@@ -231,11 +232,6 @@ abstract class QueryBloc<TData> extends Cubit<QueryState<TData>> {
               )) {
     if (shouldFetch) maybeFetch();
   }
-
-  factory QueryBloc.inline(
-    QueryFetcher<TData> fetcher, {
-    QueryInitializer<TData>? dataInitializer,
-  }) = _InlineDemandBloc<TData>;
 
   Future<TData> fetch() async {
     emit(state.toFetching());
@@ -283,10 +279,10 @@ abstract class QueryBloc<TData> extends Cubit<QueryState<TData>> {
   Future<TData> onFetching();
 }
 
-class _InlineDemandBloc<TData> extends QueryBloc<TData> {
+class QueryBloc<TData> extends QueryBlocBase<TData> {
   final QueryFetcher<TData> fetcher;
 
-  _InlineDemandBloc(
+  QueryBloc(
     this.fetcher, {
     QueryInitializer<TData>? dataInitializer,
   }) : super(
@@ -381,12 +377,15 @@ class IndexedCursor extends Cursor<int, Never> {
 
 typedef IndexedQueryBloc<TData> = PagedQueryBloc<int, TData>;
 
-abstract class PagedQueryBloc<TCursor, TData>
-    extends Cubit<QueryState<PagesState<TCursor, TData>>> {
+typedef PageFetcher<TCursor, TData> = Future<TData?> Function(TCursor cursor);
+
+class PagedQueryBloc<TCursor, TData> extends Cubit<QueryState<PagesState<TCursor, TData>>> {
   var _key = Object();
   final Cursor<TCursor, TData> _cursor;
+  final PageFetcher<TCursor, TData> _pageFetcher;
 
-  PagedQueryBloc({
+  PagedQueryBloc(
+    this._pageFetcher, {
     required Cursor<TCursor, TData> cursor,
   })  : _cursor = cursor,
         super(LoadingQuery(
@@ -418,7 +417,7 @@ abstract class PagedQueryBloc<TCursor, TData>
 
   Future<TData?> fetchPreviousPage() => fetchPage(_cursor.previous(state.requiredData));
 
-  Future<TData?> onFetchingPage(TCursor cursor);
+  Future<TData?> onFetchingPage(TCursor cursor) => _pageFetcher(cursor);
 
   Future<TData?> _fetchPage(TCursor cursor, {required Object key, required bool merge}) async {
     try {

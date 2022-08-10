@@ -7,7 +7,7 @@ import 'package:test/expect.dart';
 import 'package:test/scaffolding.dart';
 
 class _MockMutator extends Mock {
-  Future<String> call(bool param);
+  Future<String> call(MutationKey key, bool param);
 }
 
 class _MockFailed extends Mock {
@@ -22,6 +22,8 @@ class _MockSettled extends Mock {
   FutureOr<void> call(bool param, String? data, Object? error);
 }
 
+class _FakeMutationKey extends Fake implements MutationKey {}
+
 void main() {
   late Mutator<bool, String> mockMutator;
   late FailedListener<bool> mockFailedListener;
@@ -30,6 +32,7 @@ void main() {
 
   late MutationBloc<bool, String> bloc;
   late MutationState<String> state;
+  final keys = [_FakeMutationKey(), _FakeMutationKey()];
 
   setUp(() {
     mockMutator = _MockMutator();
@@ -44,6 +47,11 @@ void main() {
       onSettled: mockSettledListener,
     );
     state = bloc.state;
+
+    var index = 0;
+    MutationKey.debugCreator = () => keys[index++];
+
+    registerFallbackValue(_FakeMutationKey());
   });
 
   group('MutationBloc', () {
@@ -61,11 +69,11 @@ void main() {
 
     group('mutate', () {
       test('emits and return result', () async {
-        when(() => mockMutator(any())).thenAnswer((_) async => tResult);
+        when(() => mockMutator(any(), any())).thenAnswer((_) async => tResult);
 
         final expectedStates = [
-          state = state.toLoading(),
-          state = state.toSuccess(data: tResult),
+          state = state.toLoading(queue: {keys[0]: MutationData(param: tData, progress: 0.0)}),
+          state = state.toSuccess(queue: {}, data: tResult),
         ];
         await Future.wait([
           expectLater(bloc.stream, emitsInOrder(expectedStates)),
@@ -77,13 +85,13 @@ void main() {
       });
 
       test('emits and throw error', () async {
-        when(() => mockMutator(any())).thenAnswer((_) async {
+        when(() => mockMutator(any(), any())).thenAnswer((_) async {
           return Future.error(tError, tStackTrace);
         });
 
         final expectedStates = [
-          state = state.toLoading(),
-          state = state.toFailed(error: tError),
+          state = state.toLoading(queue: {keys[0]: MutationData(param: tData, progress: 0.0)}),
+          state = state.toFailed(queue: {}, error: tError),
         ];
         await Future.wait([
           expectLater(bloc.stream, emitsInOrder(expectedStates)),
@@ -95,12 +103,18 @@ void main() {
       });
 
       test('the execution of two success mutations at the same time', () async {
-        when(() => mockMutator(any())).thenAnswer((_) async => tResult);
+        when(() => mockMutator(any(), any())).thenAnswer((_) async => tResult);
 
         final expectedStates = [
-          state = state.toLoading(),
-          state = state.toSuccess(isMutating: true, data: tResult),
-          state = state.toSuccess(isMutating: false, data: tResult),
+          state = state.toLoading(queue: {keys[0]: MutationData(param: tData, progress: 0.0)}),
+          state = state.toLoading(
+            queue: {...state.queue, keys[1]: MutationData(param: tData, progress: 0.0)},
+          ),
+          state = state.toSuccess(
+            queue: {keys[1]: MutationData(param: tData, progress: 0.0)},
+            data: tResult,
+          ),
+          state = state.toSuccess(queue: {}, data: tResult),
         ];
         await Future.wait([
           expectLater(bloc.stream, emitsInOrder(expectedStates)),
@@ -113,14 +127,20 @@ void main() {
       });
 
       test('the execution of two failed mutations at the same time', () async {
-        when(() => mockMutator(any())).thenAnswer((_) async {
+        when(() => mockMutator(any(), any())).thenAnswer((_) async {
           return Future.error(tError, tStackTrace);
         });
 
         final expectedStates = [
-          state = state.toLoading(),
-          state = state.toFailed(isMutating: true, error: tError),
-          state = state.toFailed(isMutating: false, error: tError),
+          state = state.toLoading(queue: {keys[0]: MutationData(param: tData, progress: 0.0)}),
+          state = state.toLoading(
+            queue: {...state.queue, keys[1]: MutationData(param: tData, progress: 0.0)},
+          ),
+          state = state.toFailed(
+            queue: {keys[1]: MutationData(param: tData, progress: 0.0)},
+            error: tError,
+          ),
+          state = state.toFailed(queue: {}, error: tError),
         ];
         await Future.wait([
           expectLater(bloc.stream, emitsInOrder(expectedStates)),
@@ -135,10 +155,10 @@ void main() {
 
     group('reset', () {
       test('reset', () async {
-        when(() => mockMutator(any())).thenAnswer((_) async => tResult);
+        when(() => mockMutator(any(), any())).thenAnswer((_) async => tResult);
 
         final expectedStates = [
-          state = state.toLoading(),
+          state = state.toLoading(queue: {keys[0]: MutationData(param: tData, progress: 0.0)}),
           state = state.toIdle(),
         ];
         await Future.wait([
@@ -147,8 +167,8 @@ void main() {
           expectLater(Future.sync(bloc.reset), completion(null)),
         ]);
         verifyNever(() => mockFailedListener(any(), any()));
-        verifyNever(() => mockSuccessListener(any(), any()));
-        verifyNever(() => mockSettledListener(any(), any(), any()));
+        verify(() => mockSuccessListener(any(), any()));
+        verify(() => mockSettledListener(any(), any(), any()));
 
         await expectBlocClose(bloc);
       });

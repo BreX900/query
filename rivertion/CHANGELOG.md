@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 0.1.0-dev.4
+- feat emit mutation progress
+
 ## 0.1.0-dev.3
 - Fix MutationBloc emit new state when it is closed
 - Added on `MutationState` new methods: `mapOrNull`, `when`, `maybeWhen`, `whenOrNull`

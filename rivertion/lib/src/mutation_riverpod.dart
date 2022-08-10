@@ -1,6 +1,4 @@
 import 'package:riverbloc/riverbloc.dart';
-// ignore: implementation_imports
-import 'package:riverpod/src/internals.dart';
 import 'package:rivertion/src/mutation_bloc.dart';
 
 // ignore: subtype_of_sealed_class

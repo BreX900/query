@@ -4,36 +4,84 @@ import 'package:bloc/bloc.dart';
 import 'package:mek_data_class/mek_data_class.dart';
 import 'package:meta/meta.dart';
 import 'package:riverbloc/riverbloc.dart';
+import 'package:rivertion/src/utils/extensions.dart';
 
 part 'mutation_bloc.g.dart';
 
+class MutationKey {
+  @visibleForTesting
+  static MutationKey Function()? debugCreator;
+
+  MutationKey._();
+
+  factory MutationKey() => debugCreator?.call() ?? MutationKey._();
+
+  @override
+  String toString() => 'MutationKey#$hashCode';
+}
+
+@DataClass(copyable: true)
+class MutationData with _$MutationData {
+  final Object? param;
+  final double progress;
+
+  const MutationData({
+    required this.param,
+    required this.progress,
+  });
+}
+
 @DataClass()
 abstract class MutationState<TData> with _$MutationState<TData> {
-  const MutationState._();
+  final Map<MutationKey, MutationData> queue;
 
-  bool get isMutating;
+  const MutationState._({required this.queue});
+
+  bool get isMutating => queue.isNotEmpty;
 
   bool get isIdle => this is IdleMutation<TData>;
   bool get isLoading => this is LoadingMutation<TData>;
   bool get isFailed => this is FailedMutation<TData>;
   bool get isSuccess => this is SuccessMutation<TData>;
 
+  double get progress =>
+      queue.values.fold<double>(0.0, (total, data) => total + data.progress) / queue.length;
+
   MutationState<TData> toIdle() => IdleMutation();
 
-  MutationState<TData> toLoading() => LoadingMutation();
+  MutationState<TData> toLoading({
+    Map<MutationKey, MutationData>? queue,
+  }) {
+    return map(
+      idle: (_) => LoadingMutation(queue: queue ?? this.queue),
+      loading: (state) => LoadingMutation(queue: queue ?? this.queue),
+      failed: (state) => state.queue.isEmpty
+          ? LoadingMutation(queue: queue ?? this.queue)
+          : state.copyWith(queue: queue),
+      success: (state) => state.queue.isEmpty
+          ? LoadingMutation(queue: queue ?? this.queue)
+          : state.copyWith(queue: queue),
+    );
+  }
 
   MutationState<TData> toFailed({
-    bool isMutating = false,
+    Map<MutationKey, MutationData>? queue,
     required Object error,
   }) {
-    return FailedMutation(isMutating: isMutating, error: error);
+    return FailedMutation(
+      queue: queue ?? this.queue,
+      error: error,
+    );
   }
 
   MutationState<TData> toSuccess({
-    bool isMutating = false,
+    Map<MutationKey, MutationData>? queue,
     required TData data,
   }) {
-    return SuccessMutation(isMutating: isMutating, data: data);
+    return SuccessMutation(
+      queue: queue ?? this.queue,
+      data: data,
+    );
   }
 
   R map<R>({
@@ -119,10 +167,7 @@ abstract class MutationState<TData> with _$MutationState<TData> {
 
 @DataClass()
 class IdleMutation<TData> extends MutationState<TData> with _$IdleMutation<TData> {
-  IdleMutation() : super._();
-
-  @override
-  bool get isMutating => false;
+  IdleMutation() : super._(queue: const {});
 
   @override
   R map<R>({
@@ -137,10 +182,9 @@ class IdleMutation<TData> extends MutationState<TData> with _$IdleMutation<TData
 
 @DataClass()
 class LoadingMutation<TData> extends MutationState<TData> with _$LoadingMutation<TData> {
-  LoadingMutation() : super._();
-
-  @override
-  bool get isMutating => true;
+  LoadingMutation({
+    required Map<MutationKey, MutationData> queue,
+  }) : super._(queue: queue);
 
   @override
   R map<R>({
@@ -155,15 +199,12 @@ class LoadingMutation<TData> extends MutationState<TData> with _$LoadingMutation
 
 @DataClass()
 class FailedMutation<TData> extends MutationState<TData> with _$FailedMutation<TData> {
-  @override
-  final bool isMutating;
-
   final Object error;
 
   FailedMutation({
-    required this.isMutating,
+    required Map<MutationKey, MutationData> queue,
     required this.error,
-  }) : super._();
+  }) : super._(queue: queue);
 
   @override
   R map<R>({
@@ -174,19 +215,26 @@ class FailedMutation<TData> extends MutationState<TData> with _$FailedMutation<T
   }) {
     return failed(this);
   }
+
+  FailedMutation<TData> copyWith({
+    Map<MutationKey, MutationData>? queue,
+    Object? error,
+  }) {
+    return FailedMutation(
+      queue: queue ?? this.queue,
+      error: error ?? this.error,
+    );
+  }
 }
 
 @DataClass()
 class SuccessMutation<TData> extends MutationState<TData> with _$SuccessMutation<TData> {
-  @override
-  final bool isMutating;
-
   final TData data;
 
   SuccessMutation({
-    required this.isMutating,
+    required Map<MutationKey, MutationData> queue,
     required this.data,
-  }) : super._();
+  }) : super._(queue: queue);
 
   @override
   R map<R>({
@@ -197,9 +245,20 @@ class SuccessMutation<TData> extends MutationState<TData> with _$SuccessMutation
   }) {
     return success(this);
   }
+
+  SuccessMutation<TData> copyWith({
+    Map<MutationKey, MutationData>? queue,
+    bool? isMutating,
+    TData? data,
+  }) {
+    return SuccessMutation(
+      queue: queue ?? this.queue,
+      data: data ?? this.data,
+    );
+  }
 }
 
-typedef Mutator<TParam, TData> = FutureOr<TData> Function(TParam param);
+typedef Mutator<TParam, TData> = FutureOr<TData> Function(MutationKey key, TParam param);
 
 typedef FailedListener<TParam> = FutureOr<void> Function(TParam param, Object error);
 typedef SuccessListener<TParam, TData> = FutureOr<void> Function(TParam param, TData data);
@@ -231,17 +290,16 @@ abstract class MutationBloc<TParam, TData> extends Cubit<MutationState<TData>> {
   Future<TData> mutate(TParam param);
 
   void reset();
+
+  void emitProgress(MutationKey key, double value);
 }
 
 abstract class MutationBlocBase<TParam, TData> extends MutationBloc<TParam, TData> {
-  var _queueLength = 0;
-  var _resetKey = const Object();
-
   MutationBlocBase() : super._();
 
   /// Implements it to define a mutation
   @protected
-  FutureOr<TData> onMutating(TParam param);
+  FutureOr<TData> onMutating(MutationKey key, TParam param);
 
   /// It is recalled when the mutation fails
   ///
@@ -270,22 +328,23 @@ abstract class MutationBlocBase<TParam, TData> extends MutationBloc<TParam, TDat
 
   @override
   Future<TData> mutate(TParam param) async {
-    final resetKey = _resetKey;
+    final key = MutationKey();
 
-    if (_queueLength == 0) {
-      emit(state.toLoading());
-    }
+    emit(state.toLoading(
+      queue: {...state.queue, key: MutationData(param: param, progress: 0.0)},
+    ));
 
-    _queueLength += 1;
+    bool canEmit() => !isClosed && state.queue.containsKey(key);
 
     try {
-      final data = await onMutating(param);
+      final data = await onMutating(key, param);
 
       await _notifySuccess(param, data);
       await _notifySettled(param, data, null);
-      if (_resetKey == resetKey && !isClosed) {
+
+      if (canEmit()) {
         emit(state.toSuccess(
-          isMutating: _queueLength > 1,
+          queue: state.queue.without(key),
           data: data,
         ));
       }
@@ -296,22 +355,20 @@ abstract class MutationBlocBase<TParam, TData> extends MutationBloc<TParam, TDat
 
       await _notifyFailed(param, error);
       await _notifySettled(param, null, error);
-      if (_resetKey == resetKey && !isClosed) {
+
+      if (canEmit()) {
         emit(state.toFailed(
-          isMutating: _queueLength > 1,
+          queue: state.queue.without(key),
           error: error,
         ));
       }
 
       rethrow;
-    } finally {
-      _queueLength -= 1;
     }
   }
 
   @override
   void reset() {
-    _resetKey = Object();
     emit(state.toIdle());
   }
 
@@ -338,6 +395,16 @@ abstract class MutationBlocBase<TParam, TData> extends MutationBloc<TParam, TDat
       onError(error, stackTrace);
     }
   }
+
+  @override
+  void emitProgress(MutationKey key, double value) {
+    if (isClosed) return;
+    final data = state.queue[key];
+    if (data == null) return;
+    emit(state.toLoading(
+      queue: {...state.queue, key: data.copyWith(progress: value)},
+    ));
+  }
 }
 
 class _InlineMutationBloc<TParam, TData> extends MutationBlocBase<TParam, TData> {
@@ -357,7 +424,7 @@ class _InlineMutationBloc<TParam, TData> extends MutationBlocBase<TParam, TData>
         super();
 
   @override
-  FutureOr<TData> onMutating(TParam arg) => mutator(arg);
+  FutureOr<TData> onMutating(MutationKey key, TParam arg) => mutator(key, arg);
 
   @override
   FutureOr<void> onFailed(TParam param, Object error) => _onFailed?.call(param, error);

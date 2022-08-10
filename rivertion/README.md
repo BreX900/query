@@ -2,10 +2,14 @@
 
 Extends riverpod by adding the ability to manipulate data via asynchronous mutations / actions.
 
+See Example in: 
+TODO: Add Example
+
 ## Features
 
 - Perform asynchronous data mutations
 - Refresh a provider's when mutation complete
+- Emit mutations progress
 
 ## Usage
 
