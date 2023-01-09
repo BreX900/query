@@ -6,7 +6,7 @@ part of 'mutation_bloc.dart';
 // DataClassGenerator
 // **************************************************************************
 
-// ignore_for_file: annotate_overrides
+// ignore_for_file: annotate_overrides, unused_element
 
 mixin _$MutationState<TData> {
   MutationState<TData> get _self => this as MutationState<TData>;
@@ -15,7 +15,7 @@ mixin _$MutationState<TData> {
 
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is _$MutationState<TData> &&
+      other is MutationState<TData> &&
           runtimeType == other.runtimeType &&
           DataClass.$equals(_props, other._props);
 
@@ -31,7 +31,7 @@ mixin _$IdleMutation<TData> {
 
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is _$IdleMutation<TData> &&
+      other is IdleMutation<TData> &&
           runtimeType == other.runtimeType &&
           DataClass.$equals(_props, other._props);
 
@@ -47,7 +47,7 @@ mixin _$LoadingMutation<TData> {
 
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is _$LoadingMutation<TData> &&
+      other is LoadingMutation<TData> &&
           runtimeType == other.runtimeType &&
           DataClass.$equals(_props, other._props);
 
@@ -66,7 +66,7 @@ mixin _$FailedMutation<TData> {
 
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is _$FailedMutation<TData> &&
+      other is FailedMutation<TData> &&
           runtimeType == other.runtimeType &&
           DataClass.$equals(_props, other._props);
 
@@ -88,7 +88,7 @@ mixin _$SuccessMutation<TData> {
 
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is _$SuccessMutation<TData> &&
+      other is SuccessMutation<TData> &&
           runtimeType == other.runtimeType &&
           DataClass.$equals(_props, other._props);
 

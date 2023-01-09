@@ -6,7 +6,7 @@ part of 'debounce_bloc.dart';
 // DataClassGenerator
 // **************************************************************************
 
-// ignore_for_file: annotate_overrides
+// ignore_for_file: annotate_overrides, unused_element
 
 mixin _$DebounceState<T> {
   DebounceState<T> get _self => this as DebounceState<T>;
@@ -18,7 +18,7 @@ mixin _$DebounceState<T> {
 
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is _$DebounceState<T> &&
+      other is DebounceState<T> &&
           runtimeType == other.runtimeType &&
           DataClass.$equals(_props, other._props);
 
@@ -40,7 +40,7 @@ mixin _$IdleDebounce<T> {
 
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is _$IdleDebounce<T> &&
+      other is IdleDebounce<T> &&
           runtimeType == other.runtimeType &&
           DataClass.$equals(_props, other._props);
 
@@ -62,7 +62,7 @@ mixin _$WaitingDebounce<T> {
 
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is _$WaitingDebounce<T> &&
+      other is WaitingDebounce<T> &&
           runtimeType == other.runtimeType &&
           DataClass.$equals(_props, other._props);
 
@@ -84,7 +84,7 @@ mixin _$CompletedDebounce<T> {
 
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is _$CompletedDebounce<T> &&
+      other is CompletedDebounce<T> &&
           runtimeType == other.runtimeType &&
           DataClass.$equals(_props, other._props);
 

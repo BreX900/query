@@ -17,7 +17,7 @@ final addTodo = MutationProvider<String, void>((ref) {
 
     _todos = [..._todos, todo];
   }, onSuccess: (_, __) async {
-    await ref.refresh(todos.future);
+    final _ = await ref.refresh(todos.future);
   });
 });
 
@@ -27,7 +27,7 @@ final removeTodo = MutationProvider<String, void>((ref) {
 
     _todos = _todos.where((e) => e != todo).toList();
   }, onSuccess: (_, __) async {
-    await ref.refresh(todos.future);
+    final _ = await ref.refresh(todos.future);
   });
 });
 

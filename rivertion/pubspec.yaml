@@ -1,28 +1,29 @@
 name: rivertion
 description: Extends riverpod by adding the ability to manipulate data via asynchronous mutations / actions.
-version: 0.1.0-dev.3
+version: 2.0.0
 homepage: https://github.com/BreX900/query/riverpod_mutation
 
 environment:
-  sdk: ">=2.16.0 <3.0.0"
+  sdk: ">=2.18.0 <3.0.0"
   flutter: ">=1.17.0"
+
+scripts:
+  build:watch: dart run build_runner watch --delete-conflicting-outputs
 
 dependencies:
   meta: ^1.7.0
 
-  mek_data_class: ^0.1.0
+  mek_data_class: ^1.0.0
 
   rxdart: ^0.27.3
 
-  bloc: ^8.0.3
-  riverpod: ^2.0.0-dev.5
-  riverbloc: ^2.0.0-dev.2
+  bloc: ^8.1.0
+  riverpod: ^2.1.3
+  riverbloc: ^2.0.0
 
 dev_dependencies:
-  # dart run build_runner build --delete-conflicting-outputs
-  # dart run build_runner watch --delete-conflicting-outputs
-  build_runner: ^2.1.10
-  mek_data_class_generator: ^0.1.1
+  build_runner: ^2.3.0
+  mek_data_class_generator: ^1.0.0
 
   test: ^1.21.1
   mocktail: ^0.3.0

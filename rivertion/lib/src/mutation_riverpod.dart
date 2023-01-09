@@ -1,21 +1,21 @@
+// ignore_for_file: invalid_use_of_internal_member, subtype_of_sealed_class
+
 import 'package:riverbloc/riverbloc.dart';
 // ignore: implementation_imports
 import 'package:riverpod/src/internals.dart';
 import 'package:rivertion/src/mutation_bloc.dart';
 
-// ignore: subtype_of_sealed_class
 /// {@macro bloc_provider}
 class MutationProvider<TParam, TData>
     extends BlocProvider<MutationBloc<TParam, TData>, MutationState<TData>> {
   MutationProvider(
-    Create<MutationBloc<TParam, TData>, BlocProviderRef<MutationBloc<TParam, TData>>> create, {
+    Create<MutationBloc<TParam, TData>,
+            BlocProviderRef<MutationBloc<TParam, TData>, MutationState<TData>>>
+        create, {
     String? name,
-    List<ProviderOrFamily>? dependencies,
     Family? from,
     Object? argument,
-    FailedListener<TParam>? onFailed,
-    SuccessListener<TParam, TData>? onSuccess,
-    SettledListener<TParam, TData>? onSettled,
+    List<ProviderOrFamily>? dependencies,
   }) : super(
           create,
           name: name,
@@ -38,20 +38,22 @@ class AutoDisposeMutationProviderBuilder {
 
   /// {@macro riverpod.autoDispose}
   AutoDisposeBlocProvider<MutationBloc<TParam, TData>, MutationState<TData>> call<TParam, TData>(
-    Create<MutationBloc<TParam, TData>, AutoDisposeBlocProviderRef<MutationBloc<TParam, TData>>>
+    Create<MutationBloc<TParam, TData>,
+            AutoDisposeBlocProviderRef<MutationBloc<TParam, TData>, MutationState<TData>>>
         create, {
     String? name,
     List<ProviderOrFamily>? dependencies,
-    Family<dynamic, dynamic, ProviderBase>? from,
-    Object? argument,
   }) {
     return AutoDisposeBlocProvider(
       create,
       name: name,
       dependencies: dependencies,
-      from: from,
-      argument: argument,
     );
+  }
+
+  /// {@macro riverpod.family}
+  AutoDisposeMutationProviderFamilyBuilder get family {
+    return const AutoDisposeMutationProviderFamilyBuilder();
   }
 }
 
@@ -63,7 +65,8 @@ class MutationProviderFamilyBuilder {
   /// {@macro riverpod.family}
   BlocProviderFamily<MutationBloc<TParam, TData>, MutationState<TData>, TArg>
       call<TArg, TParam, TData>(
-    FamilyCreate<MutationBloc<TParam, TData>, BlocProviderRef<MutationBloc<TParam, TData>>, TArg>
+    FamilyCreate<MutationBloc<TParam, TData>,
+            BlocProviderRef<MutationBloc<TParam, TData>, MutationState<TData>>, TArg>
         create, {
     String? name,
     List<ProviderOrFamily>? dependencies,
@@ -90,7 +93,7 @@ class AutoDisposeMutationProviderFamilyBuilder {
   AutoDisposeBlocProviderFamily<MutationBloc<TParam, TData>, MutationState<TData>, TArg>
       call<TArg, TParam, TData>(
     FamilyCreate<MutationBloc<TParam, TData>,
-            AutoDisposeBlocProviderRef<MutationBloc<TParam, TData>>, TArg>
+            AutoDisposeBlocProviderRef<MutationBloc<TParam, TData>, MutationState<TData>>, TArg>
         create, {
     String? name,
     List<ProviderOrFamily>? dependencies,
